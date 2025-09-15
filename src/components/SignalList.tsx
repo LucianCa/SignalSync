@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TradingSignal } from '../types';
+import SignalFilter from './SignalFilter';
 
 interface SignalListProps {
   signals: TradingSignal[];
 }
 
 const SignalList: React.FC<SignalListProps> = ({ signals }) => {
+  const [filteredSignals, setFilteredSignals] = useState<TradingSignal[]>(signals);
+
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -14,14 +17,43 @@ const SignalList: React.FC<SignalListProps> = ({ signals }) => {
     return action === 'BUY' ? '#4CAF50' : '#F44336';
   };
 
+  const handleFilterChange = (filters: any) => {
+    let filtered = signals;
+
+    if (filters.symbol) {
+      filtered = filtered.filter(signal =>
+        signal.symbol.toLowerCase().includes(filters.symbol.toLowerCase())
+      );
+    }
+
+    if (filters.action !== 'ALL') {
+      filtered = filtered.filter(signal => signal.action === filters.action);
+    }
+
+    if (filters.minConfidence > 0) {
+      filtered = filtered.filter(signal => signal.confidence >= filters.minConfidence);
+    }
+
+    if (filters.provider) {
+      filtered = filtered.filter(signal =>
+        signal.provider.toLowerCase().includes(filters.provider.toLowerCase())
+      );
+    }
+
+    setFilteredSignals(filtered);
+  };
+
+  const uniqueProviders = Array.from(new Set(signals.map(signal => signal.provider)));
+
   return (
     <div style={{ padding: '20px' }}>
       <h2>Trading Signals</h2>
-      {signals.length === 0 ? (
-        <p>No signals available</p>
+      <SignalFilter onFilterChange={handleFilterChange} providers={uniqueProviders} />
+      {filteredSignals.length === 0 ? (
+        <p>No signals match your filters</p>
       ) : (
         <div>
-          {signals.map((signal) => (
+          {filteredSignals.map((signal) => (
             <div
               key={signal.id}
               style={{
